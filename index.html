@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INGRESS COMM · ENL · v5</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+:root{
+  --bg:#050810;--bg2:#080d1a;--bg3:#0d1526;
+  --enl:#00e5a0;--enl-dim:#004a35;
+  --res:#00b4ff;--res-dim:#003a5a;
+  --unk:#ff9f00;--unk-dim:#4a2d00;
+  --danger:#ff3355;--danger-dim:#4a0015;
+  --border:#1a2a3a;--text:#c8dde8;--text-dim:#4a6a7a;
+  --gold:#ffd700;--silver:#c0c0c0;--bronze:#cd7f32;
+  --spd-ok:#00e5a0;--spd-y:#ffe45c;--spd-o:#ff8c1a;--spd-r:#ff2d2d;
+  --panel-w:40%;--map-w:60%;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;display:flex;flex-direction:column;}
+
+/* ── LOGIN ── */
+.login-screen{position:fixed;inset:0;background:var(--bg);z-index:2000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;
+  background-image:linear-gradient(rgba(0,229,160,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.025) 1px,transparent 1px);
+  background-size:40px 40px;}
+.login-screen.hidden{display:none;}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:40px 36px;width:90%;max-width:380px;text-align:center;}
+.login-hex{margin:0 auto 20px;width:56px;height:56px;}
+.login-hex svg{width:100%;height:100%;}
+.login-title{font-family:'Orbitron',monospace;font-weight:900;font-size:18px;letter-spacing:4px;color:var(--enl);text-shadow:0 0 20px rgba(0,229,160,.4);margin-bottom:4px;}
+.login-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:28px;}
+.login-input-wrap{position:relative;margin-bottom:14px;}
+.login-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:14px;letter-spacing:3px;padding:13px 44px 13px 16px;border-radius:6px;outline:none;transition:border-color .2s;text-align:center;}
+.login-input:focus{border-color:var(--enl);}
+.login-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;padding:0;}
+.login-eye:hover{color:var(--enl);}
+.login-btn{width:100%;background:linear-gradient(135deg,var(--enl-dim),rgba(0,229,160,.2));border:1px solid var(--enl);color:var(--enl);font-family:'Orbitron',monospace;font-size:12px;letter-spacing:3px;padding:13px;border-radius:6px;cursor:pointer;transition:all .3s;box-shadow:0 0 16px rgba(0,229,160,.15);margin-bottom:12px;}
+.login-btn:hover{background:var(--enl);color:var(--bg);}
+.login-btn:active{transform:scale(.98);}
+.login-error{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--danger);height:16px;transition:opacity .2s;}
+.login-error.hidden{opacity:0;}
+.login-footer{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);margin-top:20px;letter-spacing:1px;}
+
+/* ── HEADER ── */
+.header{background:rgba(5,8,16,.97);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;z-index:300;flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.logo-hex{width:36px;height:36px;}
+.logo-hex svg{width:100%;height:100%;}
+.logo-title{font-family:'Orbitron',monospace;font-weight:900;font-size:15px;letter-spacing:3px;color:var(--enl);text-shadow:0 0 16px rgba(0,229,160,.4);}
+.logo-sub{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--enl);box-shadow:0 0 6px var(--enl);animation:pulse 2s infinite;flex-shrink:0;}
+@keyframes pulse{50%{opacity:.3;transform:scale(.8);}}
+.status-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:1px;}
+
+/* ── TIME RANGE SLIDER ── */
+.time-range-wrap{flex:1;min-width:280px;display:flex;align-items:center;gap:10px;}
+.time-range-inner{flex:1;position:relative;}
+.time-range-labels{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);margin-bottom:3px;}
+.time-range-track{position:relative;height:4px;background:var(--border);border-radius:2px;}
+.time-range-fill{position:absolute;height:100%;background:var(--enl);border-radius:2px;pointer-events:none;}
+.time-range-input{position:absolute;width:100%;height:4px;top:0;left:0;opacity:0;cursor:pointer;margin:0;}
+.time-range-input::-webkit-slider-thumb{width:14px;height:14px;border-radius:50%;background:var(--enl);cursor:grab;-webkit-appearance:none;}
+#sliderFrom{z-index:3;}
+#sliderTo{z-index:4;}
+.range-lbl{font-family:'Orbitron',monospace;font-size:9px;color:var(--enl);white-space:nowrap;}
+
+/* ── MAIN LAYOUT ── */
+.main{display:flex;flex:1;overflow:hidden;}
+
+/* ── PANEL (left) ── */
+.panel-col{width:var(--panel-w);flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;}
+.panel-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid var(--border);}
+.ptab{background:var(--bg2);border:none;border-right:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;padding:8px 14px;cursor:pointer;transition:all .2s;flex:1;}
+.ptab:hover{color:var(--text);}
+.ptab.on{background:var(--bg);color:var(--enl);border-bottom:2px solid var(--enl);}
+.panel-body{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.panel-inner{padding:16px;}
+.tab-pane{display:none;}.tab-pane.on{display:block;}
+
+/* ── MAP (right) ── */
+.map-col{flex:1;position:relative;display:flex;flex-direction:column;}
+#map{flex:1;}
+
+/* MAP CONTROLS overlay */
+.map-controls{position:absolute;top:10px;right:10px;z-index:400;display:flex;flex-direction:column;gap:6px;}
+.map-btn{background:rgba(8,13,26,.92);border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:10px;padding:6px 10px;border-radius:4px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.map-btn:hover{border-color:var(--enl);color:var(--enl);}
+.map-btn.on{border-color:var(--enl);color:var(--enl);background:rgba(0,229,160,.06);}
+.map-layer-panel{background:rgba(8,13,26,.95);border:1px solid var(--border);border-radius:6px;padding:10px;min-width:160px;}
+.map-layer-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);cursor:pointer;}
+.map-layer-row:hover{color:var(--text);}
+.map-layer-cb{accent-color:var(--enl);width:12px;height:12px;}
+
+/* MAP info bar */
+.map-infobar{flex-shrink:0;background:rgba(8,13,26,.95);border-top:1px solid var(--border);padding:6px 14px;display:flex;gap:16px;align-items:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);}
+.map-infobar strong{color:var(--enl);}
+
+/* ── IMPORT OVERLAY ── */
+.import-overlay{position:fixed;inset:0;background:rgba(5,8,16,.96);z-index:800;display:flex;align-items:center;justify-content:center;}
+.import-overlay.hidden{display:none;}
+.import-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:40px;max-width:560px;width:90%;text-align:center;}
+.drop-zone{border:2px dashed var(--border);border-radius:8px;padding:36px;cursor:pointer;position:relative;background:var(--bg3);transition:all .3s;margin-bottom:16px;}
+.drop-zone:hover,.drop-zone.over{border-color:var(--enl);background:rgba(0,229,160,.04);box-shadow:0 0 24px rgba(0,229,160,.15);}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-icon{font-size:34px;margin-bottom:10px;}
+.drop-title{font-family:'Orbitron',monospace;font-size:13px;letter-spacing:3px;color:var(--enl);margin-bottom:6px;}
+.drop-sub{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);}
+.file-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:14px;}
+.ftag{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--enl);display:flex;align-items:center;gap:6px;}
+.ftag .rm{cursor:pointer;color:var(--text-dim);font-size:14px;}
+.ftag .rm:hover{color:var(--danger);}
+.btn-analyze{background:linear-gradient(135deg,var(--enl-dim),rgba(0,229,160,.18));border:1px solid var(--enl);color:var(--enl);font-family:'Orbitron',monospace;font-size:12px;letter-spacing:3px;padding:11px 30px;border-radius:4px;cursor:pointer;transition:all .3s;box-shadow:0 0 16px rgba(0,229,160,.2);}
+.btn-analyze:hover{background:var(--enl);color:var(--bg);}
+.btn-analyze:disabled{opacity:.3;cursor:not-allowed;}
+.btn-reset{background:none;border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:10px;padding:6px 12px;border-radius:4px;cursor:pointer;margin-left:10px;}
+.btn-reset:hover{border-color:var(--danger);color:var(--danger);}
+
+/* ── LOADING ── */
+.loading{display:none;position:fixed;inset:0;background:rgba(5,8,16,.92);z-index:999;align-items:center;justify-content:center;flex-direction:column;gap:18px;}
+.loading.on{display:flex;}
+.spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--enl);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-txt{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;color:var(--enl);animation:blink 1.2s infinite;}
+@keyframes blink{50%{opacity:.2;}}
+
+/* ── SECTION ── */
+.s-title{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:4px;color:var(--text-dim);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.s-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.kpi{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kpi.enl::before{background:var(--enl);}
+.kpi.res::before{background:var(--res);}
+.kpi.unk::before{background:var(--unk);}
+.kpi.danger::before{background:var(--danger);}
+.kpi.neu::before{background:linear-gradient(90deg,var(--enl),var(--res));}
+.kpi-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--text-dim);margin-bottom:4px;}
+.kpi-val{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;line-height:1;margin-bottom:2px;}
+.kpi.enl .kpi-val{color:var(--enl);}
+.kpi.res .kpi-val{color:var(--res);}
+.kpi.unk .kpi-val{color:var(--unk);}
+.kpi.danger .kpi-val{color:var(--danger);}
+.kpi.neu .kpi-val{color:var(--text);}
+.kpi-sub{font-size:10px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;}
+
+/* ── SORTABLE TABLE ── */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--text-dim);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+.tbl th:hover{color:var(--text);}
+.tbl th .sa{margin-left:3px;font-size:8px;}
+.tbl th.sort-asc .sa::after{content:'▲';color:var(--enl);}
+.tbl th.sort-desc .sa::after{content:'▼';color:var(--enl);}
+.tbl th:not(.sort-asc):not(.sort-desc) .sa::after{content:'⇅';opacity:.4;}
+.tbl td{padding:7px 8px;border-bottom:1px solid rgba(26,42,58,.3);vertical-align:middle;font-size:12px;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tbody tr{cursor:pointer;transition:background .15s;}
+.tbl tbody tr:hover td{background:rgba(0,229,160,.04);}
+.tbl tbody tr.selected td{background:rgba(0,229,160,.08);}
+.fbadge{display:inline-block;padding:1px 5px;border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;}
+.fbadge.enl{background:var(--enl-dim);color:var(--enl);border:1px solid rgba(0,229,160,.3);}
+.fbadge.res{background:var(--res-dim);color:var(--res);border:1px solid rgba(0,180,255,.3);}
+.fbadge.unk{background:var(--unk-dim);color:var(--unk);border:1px solid rgba(255,159,0,.3);}
+.fbadge.me{background:rgba(0,229,160,.15);color:var(--enl);border:1px solid var(--enl);}
+.mbar{display:inline-block;width:50px;height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;vertical-align:middle;margin-left:4px;}
+.mbar-f{height:100%;border-radius:2px;}
+.spd{display:inline-block;padding:1px 5px;border-radius:3px;font-family:'Orbitron',monospace;font-size:9px;font-weight:700;}
+.spd.ok{background:rgba(0,229,160,.12);color:var(--spd-ok);border:1px solid rgba(0,229,160,.2);}
+.spd.y{background:rgba(255,228,92,.12);color:var(--spd-y);border:1px solid rgba(255,228,92,.2);}
+.spd.o{background:rgba(255,140,26,.12);color:var(--spd-o);border:1px solid rgba(255,140,26,.2);}
+.spd.r{background:rgba(255,45,45,.12);color:var(--spd-r);border:1px solid rgba(255,45,45,.2);}
+
+/* ── ARCHETYPE ── */
+.archetype{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:12px;font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.5px;border:1px solid;}
+.arch-fielder{background:rgba(0,229,160,.08);color:var(--enl);border-color:rgba(0,229,160,.25);}
+.arch-ninja{background:rgba(255,51,85,.08);color:var(--danger);border-color:rgba(255,51,85,.25);}
+.arch-builder{background:rgba(0,180,255,.08);color:var(--res);border-color:rgba(0,180,255,.25);}
+.arch-linker{background:rgba(255,159,0,.08);color:var(--unk);border-color:rgba(255,159,0,.25);}
+.arch-defender{background:rgba(100,200,255,.08);color:#7adaff;border-color:rgba(100,200,255,.25);}
+.arch-generalist{background:rgba(150,150,180,.08);color:#aabbd0;border-color:rgba(150,150,180,.2);}
+
+/* ── PATTERN CHIPS ── */
+.chip-wrap{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
+.chip{display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:10px;font-family:'Share Tech Mono',monospace;font-size:9px;border:1px solid var(--border);background:var(--bg3);color:var(--text-dim);cursor:default;}
+.tact-summary{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text);line-height:1.6;padding:8px 10px;background:rgba(5,8,16,.6);border-radius:4px;border-left:2px solid var(--enl);margin-bottom:12px;}
+
+/* ── BAR ── */
+.bar-list{display:flex;flex-direction:column;gap:6px;}
+.bar-row{display:flex;align-items:center;gap:8px;}
+.bar-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);width:90px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:12px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:2px;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.bar-fill.enl{background:linear-gradient(90deg,var(--enl-dim),var(--enl));}
+.bar-fill.res{background:linear-gradient(90deg,var(--res-dim),var(--res));}
+.bar-fill.unk{background:linear-gradient(90deg,var(--unk-dim),var(--unk));}
+.bar-fill.danger{background:linear-gradient(90deg,var(--danger-dim),var(--danger));}
+.bar-val{font-family:'Orbitron',monospace;font-size:9px;width:44px;text-align:right;flex-shrink:0;}
+
+/* ── TIMELINE ── */
+.timeline-bars{display:flex;align-items:flex-end;gap:2px;height:60px;}
+.t-bar{flex:1;min-width:2px;border-radius:1px 1px 0 0;position:relative;cursor:default;}
+.t-bar:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);padding:2px 6px;border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:8px;white-space:nowrap;z-index:10;color:var(--text);pointer-events:none;}
+.t-labels{display:flex;justify-content:space-between;padding:3px 0;font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text-dim);}
+
+/* ── SESSIONS ── */
+.session-list{display:flex;flex-direction:column;gap:6px;}
+.session-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;cursor:pointer;transition:all .2s;position:relative;}
+.session-card:hover{border-color:var(--enl);background:rgba(0,229,160,.04);}
+.session-card.active{border-color:var(--enl);background:rgba(0,229,160,.07);}
+.session-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.session-card.enl::before{background:var(--enl);}
+.session-card.res::before{background:var(--res);}
+.sess-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.sess-time{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);}
+.sess-dur{font-family:'Orbitron',monospace;font-size:10px;color:var(--enl);}
+.sess-stats{display:flex;gap:8px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);}
+.sess-arch{font-family:'Orbitron',monospace;font-size:8px;}
+.sess-stat-val{color:var(--text);}
+.sess-portals{font-size:10px;color:var(--text-dim);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── LOG ── */
+.log-wrap{max-height:240px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.log-row{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid rgba(26,42,58,.3);font-family:'Share Tech Mono',monospace;font-size:10px;line-height:1.4;}
+.log-time{color:var(--text-dim);flex-shrink:0;width:90px;font-size:9px;}
+.log-fac{flex-shrink:0;width:28px;text-align:center;}
+.log-msg{flex:1;color:var(--text);}
+
+/* ── ATTACK ── */
+.attack-panel{background:rgba(255,51,85,.05);border:1px solid rgba(255,51,85,.18);border-radius:6px;padding:12px;margin-bottom:12px;}
+.attacker-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.attacker-name{font-family:'Orbitron',monospace;font-size:11px;color:var(--res);width:130px;flex-shrink:0;}
+.attacker-num{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--danger);}
+.def-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--bg3);border-radius:3px;border:1px solid var(--border);margin-bottom:4px;}
+.def-portal{font-size:11px;color:var(--text);flex:1;}
+.def-time{font-family:'Orbitron',monospace;font-size:10px;color:var(--unk);}
+
+/* ── SPEED ── */
+.speed-panel{background:rgba(0,229,160,.03);border:1px solid rgba(0,229,160,.1);border-radius:6px;padding:12px;margin-bottom:12px;}
+.seg-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid rgba(26,42,58,.3);}
+.seg-row:last-child{border-bottom:none;}
+.seg-main{flex:1;font-size:11px;}
+.seg-portals{color:var(--text);font-weight:600;margin-bottom:2px;}
+.seg-meta{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);}
+.seg-kmh{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;flex-shrink:0;text-align:right;min-width:55px;}
+
+/* ── HOUR ── */
+.hour-chart{display:flex;align-items:flex-end;gap:2px;height:50px;margin-top:6px;}
+.h-bar{flex:1;min-width:5px;border-radius:1px 1px 0 0;position:relative;cursor:default;}
+.h-bar:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border);padding:2px 6px;border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:8px;white-space:nowrap;z-index:10;color:var(--text);}
+.h-labels{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:7px;color:var(--text-dim);margin-top:2px;}
+
+/* ── MISC ── */
+.zone-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--bg3);border-radius:3px;border:1px solid var(--border);margin-bottom:3px;}
+.me-star{color:var(--gold);font-size:12px;margin-left:4px;}
+.sx{overflow-x:auto;}
+.p-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.p-stat{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:10px;}
+.p-stat-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--text-dim);margin-bottom:4px;}
+.p-stat-val{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;}
+.ek{display:inline-block;padding:1px 4px;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:8px;}
+.ek.pres{background:rgba(0,229,160,.1);color:var(--enl);}
+.ek.atk{background:rgba(255,51,85,.1);color:var(--danger);}
+.ek.unk2{background:rgba(255,159,0,.1);color:var(--unk);}
+.coord-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(26,42,58,.3);}
+.coord-row:last-child{border-bottom:none;}
+.coord-bar{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.coord-fill{height:100%;border-radius:3px;}
+.ev-row{display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid rgba(26,42,58,.3);font-size:10px;}
+.ev-time{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);width:80px;flex-shrink:0;}
+.ev-body{flex:1;color:var(--text);}
+.ev-portal{font-weight:600;font-size:11px;}
+.ev-txt{color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:9px;}
+.meta-strip{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:8px 12px;margin-bottom:12px;display:flex;gap:16px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);}
+.meta-strip strong{color:var(--text);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.panel-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;}
+.full-card{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;}
+
+/* ── LEAFLET OVERRIDES ── */
+.leaflet-container{background:#060b14;}
+.leaflet-tile{filter:brightness(.7) saturate(.5) hue-rotate(180deg);}
+.leaflet-popup-content-wrapper{background:rgba(8,13,26,.95);border:1px solid var(--border);color:var(--text);border-radius:6px;box-shadow:none;}
+.leaflet-popup-tip{background:rgba(8,13,26,.95);}
+.leaflet-popup-close-button{color:var(--text-dim)!important;}
+.leaflet-popup-content{font-family:'Rajdhani',sans-serif;font-size:13px;margin:10px 14px;}
+.leaflet-bar a{background:rgba(8,13,26,.95)!important;color:var(--enl)!important;border-color:var(--border)!important;}
+.leaflet-bar a:hover{background:rgba(0,229,160,.1)!important;}
+
+/* ── PLAYER SELECTOR ── */
+.player-select-wrap{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+.player-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:10px;padding:5px 8px;border-radius:4px;flex:1;min-width:120px;}
+.player-select:focus{outline:none;border-color:var(--enl);}
+.btn-small{background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:9px;padding:5px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;}
+.btn-small:hover{border-color:var(--enl);color:var(--enl);}
+.btn-small.active{border-color:var(--enl);color:var(--enl);background:rgba(0,229,160,.06);}
+
+body::after{content:'';position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,229,160,.1),transparent);animation:scan 10s linear infinite;pointer-events:none;z-index:9999;}
+@keyframes scan{from{top:0;}to{top:100vh;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-hex">
+      <svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="28,3 51,15.5 51,40.5 28,53 5,40.5 5,15.5" fill="none" stroke="#00e5a0" stroke-width="1.5" opacity=".7"/>
+        <polygon points="28,10 44,19.5 44,38.5 28,48 12,38.5 12,19.5" fill="rgba(0,229,160,0.06)" stroke="#00e5a0" stroke-width="1"/>
+        <circle cx="28" cy="28" r="5" fill="#00e5a0" opacity=".9"/>
+        <line x1="28" y1="10" x2="28" y2="23" stroke="#00e5a0" stroke-width="1" opacity=".4"/>
+        <line x1="28" y1="33" x2="28" y2="48" stroke="#00e5a0" stroke-width="1" opacity=".4"/>
+        <line x1="12" y1="19.5" x2="23" y2="26" stroke="#00e5a0" stroke-width="1" opacity=".4"/>
+        <line x1="33" y1="30" x2="44" y2="36.5" stroke="#00e5a0" stroke-width="1" opacity=".4"/>
+        <line x1="44" y1="19.5" x2="33" y2="26" stroke="#00e5a0" stroke-width="1" opacity=".4"/>
+        <line x1="23" y1="30" x2="12" y2="36.5" stroke="#00e5a0" stroke-width="1" opacity=".4"/>
+      </svg>
+    </div>
+    <div class="login-title">INGRESS COMM</div>
+    <div class="login-sub">IITC ANALYTICS · ENL BARCELONA</div>
+    <div class="login-input-wrap">
+      <input class="login-input" id="loginInput" type="password" placeholder="········" autocomplete="current-password" maxlength="64">
+      <button class="login-eye" id="loginEye" onclick="toggleLoginEye()" tabindex="-1">👁</button>
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">▶ ACCEDER</button>
+    <div class="login-error hidden" id="loginError">⚠ Clave incorrecta</div>
+    <div class="login-footer">Acceso restringido · Solo agentes ENL autorizados</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading" id="loading"><div class="spinner"></div><div class="loading-txt" id="loadingTxt">PROCESANDO COMM DATA...</div></div>
+
+<!-- ERROR OVERLAY (solo se muestra si falla la carga desde Drive) -->
+<div class="import-overlay hidden" id="importOverlay"></div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-hex">
+      <svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="22,2 40,12 40,32 22,42 4,32 4,12" fill="none" stroke="#00e5a0" stroke-width="1.5" opacity=".7"/>
+        <polygon points="22,8 35,15.5 35,30 22,37 9,30 9,15.5" fill="rgba(0,229,160,0.07)" stroke="#00e5a0" stroke-width="1"/>
+        <circle cx="22" cy="22" r="4" fill="#00e5a0" opacity=".9"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-title">INGRESS COMM</div>
+      <div class="logo-sub">IITC ANALYTICS · v5.0</div>
+    </div>
+  </div>
+
+  <!-- TIME RANGE -->
+  <div class="time-range-wrap" id="timeRangeWrap" style="display:none">
+    <span class="range-lbl" id="rangeFrom">—</span>
+    <div class="time-range-inner">
+      <div class="time-range-track">
+        <div class="time-range-fill" id="rangeFill"></div>
+        <input type="range" class="time-range-input" id="sliderFrom" min="0" max="1000" value="0">
+        <input type="range" class="time-range-input" id="sliderTo"   min="0" max="1000" value="1000">
+      </div>
+    </div>
+    <span class="range-lbl" id="rangeTo">—</span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="pulse"></div>
+    <div class="status-lbl" id="statusLbl">ESPERANDO DATOS</div>
+    <button class="btn-small" id="btnReset" style="display:none">↺ RECARGAR</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- PANEL LEFT -->
+  <div class="panel-col">
+    <div class="panel-tabs">
+      <button class="ptab on" onclick="switchPTab(this,'tabOverview')">RESUMEN</button>
+      <button class="ptab" onclick="switchPTab(this,'tabAgents')">AGENTES</button>
+      <button class="ptab" onclick="switchPTab(this,'tabPortals')">PORTALES</button>
+      <button class="ptab" onclick="switchPTab(this,'tabPlayer')">FICHA</button>
+      <button class="ptab" onclick="switchPTab(this,'tabLog')">LOG</button>
+    </div>
+    <div class="panel-body">
+      <div class="panel-inner">
+
+        <!-- TAB OVERVIEW -->
+        <div class="tab-pane on" id="tabOverview">
+          <div class="meta-strip" id="metaStrip"></div>
+          <div class="s-title">RESUMEN GLOBAL</div>
+          <div class="kpi-grid" id="kpiGrid"></div>
+          <div class="s-title">ACTIVIDAD TEMPORAL</div>
+          <div class="timeline-bars" id="timelineChart"></div>
+          <div class="t-labels" id="timelineLabels"></div>
+          <div style="margin-top:12px"></div>
+          <div class="s-title">TIPOS DE ACCIÓN</div>
+          <div id="actCards"></div>
+          <div style="margin-top:12px"></div>
+          <div id="myAttackPanel">
+            <div class="s-title" style="color:var(--danger)">⚠ ATAQUES · HAIDAMAHALO</div>
+            <div id="myAttackContent"></div>
+          </div>
+        </div>
+
+        <!-- TAB AGENTS -->
+        <div class="tab-pane" id="tabAgents">
+          <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+            <button class="btn-small on" id="filterAll" onclick="setAgentFilter('all',this)">TODOS</button>
+            <button class="btn-small" id="filterENL" onclick="setAgentFilter('ENL',this)">ENL</button>
+            <button class="btn-small" id="filterRES" onclick="setAgentFilter('RES',this)">RES</button>
+          </div>
+          <div class="sx"><table class="tbl" id="playerTable"></table></div>
+        </div>
+
+        <!-- TAB PORTALS -->
+        <div class="tab-pane" id="tabPortals">
+          <div class="sx"><table class="tbl" id="portalTable"></table></div>
+        </div>
+
+        <!-- TAB PLAYER (ficha + sesiones) -->
+        <div class="tab-pane" id="tabPlayer">
+          <div id="playerFichaEmpty" style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:11px;padding:20px 0">
+            Selecciona un agente en la tabla para ver su ficha completa.
+          </div>
+          <div id="playerFicha" style="display:none"></div>
+        </div>
+
+        <!-- TAB LOG -->
+        <div class="tab-pane" id="tabLog">
+          <div class="log-wrap" id="actLog"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MAP RIGHT -->
+  <div class="map-col">
+    <div id="map"></div>
+
+    <!-- Map controls -->
+    <div class="map-controls">
+      <div class="map-layer-panel">
+        <div style="font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;color:var(--text-dim);margin-bottom:8px">CAPAS</div>
+        <label class="map-layer-row"><input type="checkbox" class="map-layer-cb" id="layerPortals" checked onchange="toggleLayer('portals')"> Portales</label>
+        <label class="map-layer-row"><input type="checkbox" class="map-layer-cb" id="layerPlayer" checked onchange="toggleLayer('player')"> Agente activo</label>
+        <label class="map-layer-row"><input type="checkbox" class="map-layer-cb" id="layerSession" checked onchange="toggleLayer('session')"> Sesión activa</label>
+        <label class="map-layer-row"><input type="checkbox" class="map-layer-cb" id="layerMine" checked onchange="toggleLayer('mine')"> Mis portales</label>
+        <label class="map-layer-row"><input type="checkbox" class="map-layer-cb" id="layerContext" onchange="toggleLayer('context')"> Contexto sesión</label>
+      </div>
+      <button class="map-btn" id="btnFitAll" onclick="fitAll()">⊙ Centrar todo</button>
+      <button class="map-btn" id="btnFitPlayer" onclick="fitPlayer()" style="display:none">⊙ Centrar agente</button>
+    </div>
+
+    <div class="map-infobar" id="mapInfobar">
+      <span>Sin datos cargados</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const MY_AGENT='HaidaMahalo';
+const SESSION_GAP=4*60*60*1000;
+const AGENT_BLACKLIST=new Set(['agent','your','enlightened','resistance','machina','unknown','a','an','the','enlightened agent','resistance agent']);
+
+// ← PEGA AQUÍ LA URL DEL APPS SCRIPT DESPUÉS DE PUBLICARLO
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycby7K7JIdVRHOU7f2K37pYDd0wEFYcn0dHiag0v81lmjljdoG6g-3zbx5vOaYLng9Ih7/exec';
+
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+let G=null;
+let GF=null;
+let activePlayer=null;
+let activeSession=null;
+let agentFilter='all';
+const sortState={};
+let map=null;
+const layers={portals:null,player:null,session:null,mine:null,context:null};
+const layerVisible={portals:true,player:true,session:true,mine:true,context:false};
+let rangeMin=0,rangeMax=1000,tsMin=0,tsMax=1;
+
+// ============================================================
+// AUTH
+// ============================================================
+const PWD_HASH='0cd6207782bd0ac56b14d31c78614d2968bf04ff8a087e999bba56a515383844';
+
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin(){
+  const val=document.getElementById('loginInput').value.trim();
+  if(!val) return;
+  const btn=document.getElementById('loginBtn');
+  btn.textContent='···';btn.disabled=true;
+  const hash=await sha256(val);
+  if(hash===PWD_HASH){
+    sessionStorage.setItem('ingress_auth','1');
+    document.getElementById('loginScreen').classList.add('hidden');
+    btn.textContent='▶ ACCEDER';btn.disabled=false;
+    loadFromDrive();
+  }else{
+    const err=document.getElementById('loginError');
+    err.classList.remove('hidden');
+    document.getElementById('loginInput').value='';
+    document.getElementById('loginInput').focus();
+    setTimeout(()=>err.classList.add('hidden'),2500);
+    btn.textContent='▶ ACCEDER';btn.disabled=false;
+  }
+}
+
+function toggleLoginEye(){
+  const inp=document.getElementById('loginInput');
+  const eye=document.getElementById('loginEye');
+  if(inp.type==='password'){inp.type='text';eye.textContent='🙈';}
+  else{inp.type='password';eye.textContent='👁';}
+}
+
+document.getElementById('loginInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+// Check if already authenticated this session
+if(sessionStorage.getItem('ingress_auth')==='1'){
+  document.getElementById('loginScreen').classList.add('hidden');
+  // loadFromDrive() will be called after DOM ready
+  window.addEventListener('load',()=>loadFromDrive());
+}
+
+// ============================================================
+// DRIVE LOADER
+// ============================================================
+async function loadFromDrive(){
+  if(!APPS_SCRIPT_URL){
+    showDriveError('APPS_SCRIPT_URL no configurada.');
+    return;
+  }
+
+  setLoadingMsg('CONECTANDO CON DRIVE...');
+  document.getElementById('loading').classList.add('on');
+
+  try{
+    const data = await fetchJsonp(APPS_SCRIPT_URL);
+    if(!data.ok) throw new Error(data.error||'Error en el script de Drive.');
+    if(!data.files||!data.files.length) throw new Error('La carpeta de Drive está vacía. Sube al menos un archivo .txt.');
+
+    setLoadingMsg(`PROCESANDO ${data.files.length} ARCHIVOS...`);
+    await tick();
+
+    G=parseAll(data.files.map(f=>f.content), data.files.map(f=>f.name));
+    initTimeRange();
+    applyTimeFilter();
+
+    document.getElementById('timeRangeWrap').style.display='flex';
+    document.getElementById('btnReset').style.display='inline-block';
+    document.getElementById('statusLbl').textContent=`${data.files.length} archivos · ${G.events.length.toLocaleString()} eventos`;
+    initMap();
+
+  }catch(e){
+    console.error('Drive load error:',e);
+    showDriveError(e.message);
+  }
+
+  document.getElementById('loading').classList.remove('on');
+}
+
+// JSONP — único método que funciona con Apps Script sin servidor propio
+function fetchJsonp(url, timeout=15000){
+  return new Promise((resolve, reject) => {
+    const cbName = 'ingressCallback_' + Date.now();
+    const script = document.createElement('script');
+    const timer  = setTimeout(() => {
+      cleanup();
+      reject(new Error('Timeout: el script tardó demasiado. Comprueba que está publicado correctamente.'));
+    }, timeout);
+
+    window[cbName] = (data) => { cleanup(); resolve(data); };
+
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    script.onerror = () => { cleanup(); reject(new Error('No se pudo cargar el script. Comprueba la URL y que el acceso es "Cualquier persona".')); };
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+    document.head.appendChild(script);
+  });
+}
+
+function setLoadingMsg(msg){
+  document.getElementById('loadingTxt').textContent=msg;
+}
+
+function showDriveError(msg){
+  document.getElementById('loading').classList.remove('on');
+  // Show error inside the import overlay as fallback
+  const ov=document.getElementById('importOverlay');
+  ov.classList.remove('hidden');
+  ov.innerHTML=`
+    <div class="import-box" style="text-align:center">
+      <div style="font-size:36px;margin-bottom:16px">⚠</div>
+      <div style="font-family:'Orbitron',monospace;font-size:13px;letter-spacing:2px;color:var(--danger);margin-bottom:12px">ERROR AL CARGAR DATOS</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);margin-bottom:20px;line-height:1.6">${esc(msg)}</div>
+      <button class="btn-analyze" onclick="loadFromDrive()">↺ REINTENTAR</button>
+    </div>`;
+}
+
+document.getElementById('btnReset').addEventListener('click',()=>{
+  G=null;GF=null;activePlayer=null;activeSession=null;
+  document.getElementById('timeRangeWrap').style.display='none';
+  document.getElementById('btnReset').style.display='none';
+  clearMapLayers();
+  loadFromDrive();
+});
+
+const tick=()=>new Promise(r=>setTimeout(r,30));
+
+// ============================================================
+// TIME RANGE
+// ============================================================
+function initTimeRange(){
+  const evTs=G.events.map(e=>e.ts).filter(Boolean);
+  tsMin=Math.min(...evTs);
+  tsMax=Math.max(...evTs);
+  rangeMin=0;rangeMax=1000;
+  updateRangeUI();
+  setupSliders();
+}
+
+function setupSliders(){
+  const sFrom=document.getElementById('sliderFrom');
+  const sTo=document.getElementById('sliderTo');
+  function onInput(){
+    let a=parseInt(sFrom.value),b=parseInt(sTo.value);
+    if(a>b-10){if(this===sFrom)a=b-10;else b=a+10;}
+    sFrom.value=a;sTo.value=b;
+    rangeMin=a;rangeMax=b;
+    updateRangeUI();
+    applyTimeFilter();
+  }
+  sFrom.oninput=onInput;
+  sTo.oninput=onInput;
+}
+
+function updateRangeUI(){
+  const fill=document.getElementById('rangeFill');
+  fill.style.left=(rangeMin/10)+'%';
+  fill.style.width=((rangeMax-rangeMin)/10)+'%';
+  const tsA=tsMin+(rangeMin/1000)*(tsMax-tsMin);
+  const tsB=tsMin+(rangeMax/1000)*(tsMax-tsMin);
+  document.getElementById('rangeFrom').textContent=fmtDateShort(tsA);
+  document.getElementById('rangeTo').textContent=fmtDateShort(tsB);
+}
+
+function applyTimeFilter(){
+  if(!G) return;
+  const tsA=tsMin+(rangeMin/1000)*(tsMax-tsMin);
+  const tsB=tsMin+(rangeMax/1000)*(tsMax-tsMin);
+  GF=filterDataset(G,tsA,tsB);
+  renderAll();
+  refreshMap();
+}
+
+function filterDataset(data,tsA,tsB){
+  const events=data.events.filter(e=>e.ts>=tsA&&e.ts<=tsB);
+  // Recompute aggregates on filtered events
+  const players={},portals={};
+  const acCounts={capture:0,deploy:0,link:0,field:0,destroy:0,destroyLink:0,destroyField:0,attack:0,neutralize:0,other:0};
+  const facCounts={ENL:0,RES:0,UNK:0};
+  let totalMU=0,enlMU=0,resMU=0;
+  const hourBuckets={};
+  const myAttacks={};
+
+  // Build player subset from full player list, filtering rawEvents
+  data.players.forEach(P=>{
+    const filteredEvents=P.rawEvents.filter(e=>e.ts>=tsA&&e.ts<=tsB);
+    if(!filteredEvents.length) return;
+    // Recompute quick stats
+    const actions={capture:0,deploy:0,link:0,field:0,destroy:0,destroyLink:0,destroyField:0,other:0};
+    let mu=0;
+    const portalFreq={},hourActivity={},zones={},deployedPortals={},dowActivity={};
+    const daysActive=new Set();
+    const eventKinds={presence:0,attack:0,unknown:0};
+    filteredEvents.forEach(ev=>{
+      actions[ev.actionType]=(actions[ev.actionType]||0)+1;
+      if(ev.portal) portalFreq[ev.portal]=(portalFreq[ev.portal]||0)+1;
+      const h=new Date(ev.ts).getHours();
+      hourActivity[h]=(hourActivity[h]||0)+1;
+      const dow=new Date(ev.ts).getDay();
+      dowActivity[dow]=(dowActivity[dow]||0)+1;
+      daysActive.add(new Date(ev.ts).toISOString().slice(0,10));
+      if(ev.actionType==='deploy'||ev.actionType==='capture') if(ev.portal) deployedPortals[ev.portal]=(deployedPortals[ev.portal]||0)+1;
+      eventKinds[ev.kind]=(eventKinds[ev.kind]||0)+1;
+    });
+    // Filter sessions
+    const sessions=P.sessions.filter(s=>s.startTs>=tsA&&s.startTs<=tsB);
+    const FP=Object.assign({},P,{
+      rawEvents:filteredEvents,count:filteredEvents.length,
+      actions,portalFreq,hourActivity,dowActivity,zones:P.zones,
+      deployedPortals,daysActive,eventKinds,sessions,
+      totalMU:filteredEvents.reduce((s,e)=>s+(e.mu||0),0)
+    });
+    // Recompute speed from filtered presence events
+    computeSpeedSegments(FP);
+    computePatterns(FP,events);
+    players[P.name]=FP;
+  });
+
+  events.forEach(ev=>{
+    facCounts[ev.faction]=(facCounts[ev.faction]||0)+1;
+    if(ev.portal&&!ev.isMyEvent){
+      if(!portals[ev.portal]) portals[ev.portal]={name:ev.portal,count:0,factions:{},lat:ev.lat,lng:ev.lng};
+      portals[ev.portal].count++;
+      portals[ev.portal].factions[ev.faction]=(portals[ev.portal].factions[ev.faction]||0)+1;
+      if(ev.lat&&!portals[ev.portal].lat){portals[ev.portal].lat=ev.lat;portals[ev.portal].lng=ev.lng;}
+    }
+    acCounts[ev.actionType]=(acCounts[ev.actionType]||0)+1;
+    if(ev.mu>0){totalMU+=ev.mu;if(ev.faction==='ENL')enlMU+=ev.mu;if(ev.faction==='RES')resMU+=ev.mu;}
+    if(ev.ts){const d=new Date(ev.ts);const k=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}h`;hourBuckets[k]=(hourBuckets[k]||0)+1;}
+    if(ev.isMyEvent&&ev.attacker){
+      if(!myAttacks[ev.attacker])myAttacks[ev.attacker]={portalsHit:{},linksDestroyed:0,fieldsDestroyed:0,timestamps:[],portalsNeutralized:0};
+      const A=myAttacks[ev.attacker];A.timestamps.push(ev.ts);
+      if(ev.actionType==='attack')A.portalsHit[ev.portal]=(A.portalsHit[ev.portal]||0)+1;
+      if(ev.actionType==='neutralize')A.portalsNeutralized++;
+      if(ev.actionType==='destroyLink')A.linksDestroyed++;
+    }
+  });
+
+  // Cross-coordination on filtered
+  const pList=Object.values(players).sort((a,b)=>b.count-a.count);
+  computeCoordination(pList,events);
+
+  return{
+    events,
+    players:pList,
+    portals:Object.values(portals).sort((a,b)=>b.count-a.count),
+    acCounts,facCounts,totalMU,enlMU,resMU,
+    hourBuckets,myAttacks,
+    meDefenseStats:buildMyDefenseStats(events),
+    meta:data.meta
+  };
+}
+
+// ============================================================
+// CLASSIFIER + HAVERSINE + SPEED
+// ============================================================
+function classifyEvent(text){
+  const t=(text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  if(!t) return 'unknown';
+  if(/(attack|attacked|destroy|destroyed|neutraliz|neutralis|damag|resonator destroyed|mod destroyed|link destroyed|field destroyed|ada refactor|jarvis virus|xmp|ultra strike|us attack|killed|removed)/i.test(t)) return 'attack';
+  if(/(recharg|recharged|recarg)/i.test(t)) return 'unknown';
+  if(/(captur|captured|deployed|deploy|resonator deployed|upgrade|upgraded|installed|install mod|mod installed|linked|created a link|link created|created a control field|control field created|created field|field created)/i.test(t)) return 'presence';
+  return 'unknown';
+}
+function ekIcon(k){return k==='presence'?'📍':k==='attack'?'💥':'❓';}
+function haversine(lat1,lng1,lat2,lng2){const R=6371008.8,r=d=>d*Math.PI/180;const dLat=r(lat2-lat1),dLng=r(lng2-lng1);const a=Math.sin(dLat/2)**2+Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
+function spdClass(kmh){if(kmh>120)return 'r';if(kmh>80)return 'o';if(kmh>45)return 'y';return 'ok';}
+function spdEmoji(cls){return{ok:'🟢',y:'🟡',o:'🟠',r:'🔴'}[cls]||'🟢';}
+function spdColor(cls){return{ok:'#00e5a0',y:'#ffe45c',o:'#ff8c1a',r:'#ff2d2d'}[cls]||'#00e5a0';}
+
+function computeSpeedSegments(P){
+  const pEvs=P.rawEvents.filter(e=>e.kind==='presence'&&e.lat&&e.lng);
+  const segs=[];
+  for(let i=1;i<pEvs.length;i++){
+    const a=pEvs[i-1],b=pEvs[i];
+    const dt=(b.ts-a.ts)/1000;
+    if(dt<=0||dt>3600*4) continue;
+    if(Math.abs(a.lat-b.lat)<0.000001&&Math.abs(a.lng-b.lng)<0.000001) continue;
+    const distKm=haversine(a.lat,a.lng,b.lat,b.lng)/1000;
+    if(distKm<0.01) continue;
+    const kmh=distKm/(dt/3600);
+    segs.push({fromPortal:a.portal,toPortal:b.portal,fromTs:a.ts,toTs:b.ts,distKm,dt,kmh,cls:spdClass(kmh),fromLat:a.lat,fromLng:a.lng,toLat:b.lat,toLng:b.lng});
+  }
+  segs.sort((a,b)=>b.kmh-a.kmh);
+  P.speedSegments=segs;
+  P.speedTotalKm=segs.reduce((s,x)=>s+x.distKm,0);
+  P.speedMaxKmh=segs[0]?.kmh||0;
+  P.speedMaxClass=segs[0]?spdClass(segs[0].kmh):'ok';
+  const valid=segs.filter(s=>s.dt>0);
+  P.speedAvgKmh=valid.length?valid.reduce((s,x)=>s+x.kmh,0)/valid.length:0;
+}
+
+// ============================================================
+// SESSION BUILDER
+// ============================================================
+function buildSessions(rawEvents){
+  if(!rawEvents||!rawEvents.length) return [];
+  const sorted=[...rawEvents].sort((a,b)=>a.ts-b.ts);
+  const sessions=[];
+  let cur={events:[sorted[0]]};
+  for(let i=1;i<sorted.length;i++){
+    const ev=sorted[i];
+    const prev=sorted[i-1];
+    if(ev.ts-prev.ts>SESSION_GAP){
+      sessions.push(finalizeSession(cur));
+      cur={events:[ev]};
+    }else{
+      cur.events.push(ev);
+    }
+  }
+  sessions.push(finalizeSession(cur));
+  return sessions;
+}
+
+function finalizeSession(cur){
+  const evs=cur.events;
+  const startTs=evs[0].ts;
+  const endTs=evs[evs.length-1].ts;
+  const durationMin=Math.round((endTs-startTs)/60000);
+  // Portal list ordered, with coords
+  const portalMap={};
+  evs.forEach(ev=>{if(ev.portal&&ev.lat){portalMap[ev.portal]={lat:ev.lat,lng:ev.lng};}});
+  // Ordered unique portals
+  const portalsOrdered=[];
+  const seen=new Set();
+  evs.forEach(ev=>{if(ev.portal&&!seen.has(ev.portal)){seen.add(ev.portal);portalsOrdered.push({name:ev.portal,lat:ev.lat||portalMap[ev.portal]?.lat,lng:ev.lng||portalMap[ev.portal]?.lng});}});
+  const actions={capture:0,deploy:0,link:0,field:0,destroy:0,destroyLink:0,destroyField:0,other:0};
+  let mu=0;
+  evs.forEach(ev=>{actions[ev.actionType]=(actions[ev.actionType]||0)+1;if(ev.mu)mu+=ev.mu;});
+  // Dominant pattern
+  const total=evs.length||1;
+  const fieldR=(actions.field||0)/total,deployR=(actions.deploy||0)/total,destroyR=(actions.destroy||0)/total,capR=(actions.capture||0)/total,linkR=(actions.link||0)/total;
+  let arch='generalist';
+  if(fieldR>0.2) arch='fielder';
+  else if(destroyR>0.25&&capR>0.1) arch='ninja';
+  else if(deployR>0.45) arch='builder';
+  else if(linkR>0.3&&fieldR<0.08) arch='linker';
+  else if(deployR>0.3&&destroyR<0.05) arch='defender';
+  // Speed within session
+  let maxKmh=0;
+  const pEvs=evs.filter(e=>e.kind==='presence'&&e.lat&&e.lng);
+  for(let i=1;i<pEvs.length;i++){
+    const a=pEvs[i-1],b=pEvs[i];
+    const dt=(b.ts-a.ts)/1000;
+    if(dt<=0||dt>3600*4) continue;
+    const distKm=haversine(a.lat,a.lng,b.lat,b.lng)/1000;
+    if(distKm<0.01) continue;
+    const kmh=distKm/(dt/3600);
+    if(kmh>maxKmh) maxKmh=kmh;
+  }
+  // Centroid
+  const withCoords=portalsOrdered.filter(p=>p.lat);
+  const centerLat=withCoords.length?withCoords.reduce((s,p)=>s+p.lat,0)/withCoords.length:null;
+  const centerLng=withCoords.length?withCoords.reduce((s,p)=>s+p.lng,0)/withCoords.length:null;
+  // Zone
+  const zones={};evs.forEach(ev=>{if(ev.zone)zones[ev.zone]=(zones[ev.zone]||0)+1;});
+  const zone=Object.entries(zones).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
+  return{startTs,endTs,durationMin,events:evs,portals:portalsOrdered,actions,totalMU:mu,dominantArch:arch,maxKmh,spdCls:spdClass(maxKmh),centerLat,centerLng,zone,id:`${startTs}`};
+}
+
+// ============================================================
+// PATTERNS
+// ============================================================
+const archetypeMap={
+  fielder:{label:'Fielder',icon:'🔺',cls:'arch-fielder',desc:'Construye campos de control buscando máximas MUs. Prefiere operaciones de gran escala.'},
+  ninja:{label:'Ninja',icon:'⚡',cls:'arch-ninja',desc:'Destruye y recaptura portales con rapidez. Especialista en limpiar y reconstruir.'},
+  builder:{label:'Builder',icon:'🔋',cls:'arch-builder',desc:'Despliega resonadores masivamente. Consolida presencia propia antes de linkear.'},
+  linker:{label:'Linker',icon:'🔗',cls:'arch-linker',desc:'Crea links extensos pero raramente cierra campos. Preparador de operaciones.'},
+  defender:{label:'Defensor',icon:'🛡️',cls:'arch-defender',desc:'Mantiene y repara sus portales habituales. Alta fidelidad a su zona.'},
+  generalist:{label:'Generalista',icon:'⚙️',cls:'arch-generalist',desc:'Actividad equilibrada entre todas las acciones. Jugador versátil.'},
+};
+
+function computePatterns(P,allEvents){
+  const pats={};const total=P.count||1;
+  const fieldR=(P.actions.field||0)/total,deployR=(P.actions.deploy||0)/total,linkR=(P.actions.link||0)/total,destroyR=(P.actions.destroy||0)/total,capR=(P.actions.capture||0)/total;
+  const muPerField=P.actions.field>0?P.totalMU/P.actions.field:0;
+  let arch='generalist';
+  if(fieldR>0.15&&muPerField>50) arch='fielder';
+  else if(destroyR>0.25&&capR>0.1) arch='ninja';
+  else if(deployR>0.45&&fieldR<0.1) arch='builder';
+  else if(linkR>0.3&&fieldR<0.08) arch='linker';
+  else if(deployR>0.3&&destroyR<0.05&&Object.keys(P.deployedPortals||{}).length<10) arch='defender';
+  P.archetype=arch;P.archetypeData=archetypeMap[arch];
+  // Time window
+  const hT=Array.from({length:24},(_,h)=>P.hourActivity[h]||0);
+  const hSum=hT.reduce((a,b)=>a+b,0)||1;
+  const morn=hT.slice(6,10).reduce((a,b)=>a+b,0)/hSum,day=hT.slice(10,18).reduce((a,b)=>a+b,0)/hSum,eve=hT.slice(18,22).reduce((a,b)=>a+b,0)/hSum,ngt=[...hT.slice(22),...hT.slice(0,4)].reduce((a,b)=>a+b,0)/hSum;
+  const maxS=Math.max(morn,day,eve,ngt);
+  let tL='',tI='';
+  if(maxS===morn){tL='Madrugador';tI='🌅';}else if(maxS===day){tL='Diurno';tI='☀️';}else if(maxS===eve){tL='Vespertino';tI='🌆';}else{tL='Nocturno';tI='🌙';}
+  const wkA=(P.dowActivity[0]||0)+(P.dowActivity[6]||0),wkdA=[1,2,3,4,5].reduce((a,d)=>a+(P.dowActivity[d]||0),0);
+  if(P.daysActive.size>2&&wkA/Math.max(wkA+wkdA,1)>0.55)tL='Fin de semana';
+  pats.timeWindow={label:`${tI} ${tL}`,desc:`Concentra actividad en horario ${tL.toLowerCase()}.`,icon:tI};
+  // Gini
+  const freqs=Object.values(P.portalFreq||{}).sort((a,b)=>a-b);let gini=0;
+  if(freqs.length>1){const n=freqs.length,sum=freqs.reduce((a,b)=>a+b,0)||1;freqs.forEach((f,i)=>{gini+=((2*(i+1)-n-1)*f);});gini=Math.abs(gini/(n*sum));}
+  let trL='',trI='';
+  if(gini>0.65){trL='Territorial';trI='📍';}else if(gini>0.35){trL='Semi-territorial';trI='🗺️';}else{trL='Nómada';trI='🚀';}
+  pats.territoriality={label:`${trI} ${trL}`,desc:gini>0.65?'Opera repetidamente en los mismos portales.':gini>0.35?'Combina zona habitual con exploración.':'Gran variedad de portales. Movilidad alta.',gini};
+  // Field eff
+  if(P.actions.field>0){let eL='',eI='';if(muPerField>2000){eL='Macro-fielder';eI='🌐';}else if(muPerField>300){eL='Fielder medio';eI='🔺';}else{eL='Micro-fielder';eI='🔹';}pats.fieldEff={label:`${eI} ${eL}`,desc:`${Math.round(muPerField).toLocaleString()} MU/campo.`,icon:eI};}
+  // Ninja
+  let ninjaSeq=0;const ptLines={};
+  (P.rawEvents||[]).forEach(ev=>{if(!ev.portal)return;if(!ptLines[ev.portal])ptLines[ev.portal]=[];ptLines[ev.portal].push(ev);});
+  Object.values(ptLines).forEach(evs=>{evs.sort((a,b)=>a.ts-b.ts);for(let i=0;i<evs.length-2;i++){const a=evs[i],b=evs[i+1],c=evs[i+2];if(c.ts-a.ts>10*60*1000)continue;if(a.actionType==='destroy'&&b.actionType==='capture'&&(c.actionType==='deploy'||c.actionType==='link'||c.actionType==='field'))ninjaSeq++;}});
+  const onlyDest=(P.actions.destroy||0)>3&&(P.actions.capture||0)<(P.actions.destroy||0)*0.3;
+  if(ninjaSeq>=3)pats.ninjaPattern={label:'⚡ Ninja coordinado',desc:`${ninjaSeq} secuencias destroy→capture→build en <10min.`,count:ninjaSeq};
+  else if(onlyDest)pats.ninjaPattern={label:'💥 Puro atacante',desc:`Alto ratio destrucciones sin reconstrucción posterior.`};
+  // Consistency
+  const rMs=(P.lastActiveTs||0)-(P.firstTs||0),rDays=Math.max(1,rMs/(1000*3600*24)),aPct=P.daysActive.size/rDays;
+  let cL='',cI='',cD='';
+  if(aPct>0.6){cL='Diario';cI='📅';cD='Juega prácticamente todos los días.';}else if(aPct>0.2){cL='Regular';cI='🗓️';cD='Actividad frecuente pero no diaria.';}else{cL='Casual';cI='💤';cD='Aparece esporádicamente.';}
+  const sessL=P.avgSessionMin>120?'Maratoniano':P.avgSessionMin>30?'Sesiones medias':'Sesiones cortas';
+  pats.consistency={label:`${cI} ${cL} · ${sessL}`,desc:`${cD} Sesión media ${P.avgSessionMin}min.`,icon:cI};
+  // Guardian
+  const sP=Object.entries(P.portalFreq||{}).sort((a,b)=>b[1]-a[1]);
+  const top3=sP.slice(0,3).reduce((s,[,n])=>s+n,0);const top3P=total>0?top3/total:0;
+  if(top3P>0.3&&sP.length>0)pats.guardian={label:`🏰 Guardián`,desc:`${Math.round(top3P*100)}% de acciones en ≤3 portales. Principal: "${sP[0][0]}".`};
+  P.patterns=pats;
+  // Tactical summary
+  const parts=[`${P.archetypeData.icon} ${P.archetypeData.label}`];
+  if(pats.timeWindow)parts.push(pats.timeWindow.label);
+  if(pats.consistency)parts.push(`${pats.consistency.icon} ${cL}`);
+  if(pats.territoriality)parts.push(pats.territoriality.label);
+  if(P.topZone)parts.push(`📌 ${P.topZone[0]||P.topZone}`);
+  if(P.speedMaxKmh>120)parts.push('🔴 Velocidad sospechosa');else if(P.speedMaxKmh>80)parts.push('🟠 Alta movilidad');
+  if(pats.ninjaPattern)parts.push(pats.ninjaPattern.label.split(' ').slice(0,2).join(' '));
+  if(pats.fieldEff)parts.push(pats.fieldEff.label);
+  if(pats.guardian)parts.push('🏰 Guardián');
+  P.tacticalSummary=parts.join(' · ');
+}
+
+function computeCoordination(allPlayers,allEvents){
+  const WINDOW=15*60*1000;const portalEvs={};
+  allEvents.forEach(ev=>{if(!ev.agent||!ev.portal||ev.isMyEvent)return;if(AGENT_BLACKLIST.has(ev.agent.toLowerCase()))return;if(!portalEvs[ev.portal])portalEvs[ev.portal]=[];portalEvs[ev.portal].push(ev);});
+  const pairCounts={};
+  Object.values(portalEvs).forEach(evs=>{evs.sort((a,b)=>a.ts-b.ts);for(let i=0;i<evs.length;i++){for(let j=i+1;j<evs.length;j++){if(evs[j].ts-evs[i].ts>WINDOW)break;const a=evs[i].agent,b=evs[j].agent;if(a===b)continue;const key=[a,b].sort().join('|||');if(!pairCounts[key])pairCounts[key]={agents:[a,b],count:0,portals:new Set()};pairCounts[key].count++;pairCounts[key].portals.add(evs[i].portal);}}});
+  const playerMap={};allPlayers.forEach(P=>{playerMap[P.name]=P;P.coordWith=[];});
+  Object.values(pairCounts).forEach(pair=>{if(pair.count<3)return;const[nA,nB]=pair.agents;if(playerMap[nA])playerMap[nA].coordWith.push({partner:nB,count:pair.count,portals:pair.portals.size});if(playerMap[nB])playerMap[nB].coordWith.push({partner:nA,count:pair.count,portals:pair.portals.size});});
+  allPlayers.forEach(P=>{P.coordWith.sort((a,b)=>b.count-a.count);if(P.coordWith.length>0){const top=P.coordWith[0];if(P.patterns)P.patterns.coordination={label:`🤝 Opera con ${top.partner}`,desc:`Co-actividad en ${top.portals} portales. ${top.count} coincidencias en 15min.`,top};if(P.tacticalSummary)P.tacticalSummary+=` · 🤝 Coordinación detectada`;}});
+}
+
+// ============================================================
+// PARSE ALL
+// ============================================================
+function parseAll(texts,names){
+  const seenEvents=new Set();
+  let events=[],fileMetas=[];
+  texts.forEach((txt,i)=>{
+    const{meta,evs}=parseFile(txt,names[i]);
+    fileMetas.push(meta);
+    evs.forEach(ev=>{const k=`${ev.ts}|${ev.faction}|${ev.msg}`;if(!seenEvents.has(k)){seenEvents.add(k);events.push(ev);}});
+  });
+  events.sort((a,b)=>a.ts-b.ts);
+
+  // Build players with sessions
+  const playerMap={};
+  events.forEach(ev=>{
+    if(!ev.agent||AGENT_BLACKLIST.has(ev.agent.toLowerCase())) return;
+    if(!playerMap[ev.agent]) playerMap[ev.agent]=initPlayer(ev.agent,ev.faction);
+    const P=playerMap[ev.agent];
+    if(P.faction==='UNK'&&ev.faction!=='UNK') P.faction=ev.faction;
+    if(ev.portal) P.portalFreq[ev.portal]=(P.portalFreq[ev.portal]||0)+1;
+    const h=new Date(ev.ts).getHours();P.hourActivity[h]=(P.hourActivity[h]||0)+1;
+    const dow=new Date(ev.ts).getDay();P.dowActivity[dow]=(P.dowActivity[dow]||0)+1;
+    if(ev.zone) P.zones[ev.zone]=(P.zones[ev.zone]||0)+1;
+    if(ev.mu>0) P.totalMU+=ev.mu;
+    if(P.lastTs&&(ev.ts-P.lastTs)<30*60*1000) P.sessionMs+=ev.ts-P.lastTs;
+    else if(P.lastTs) P.sessions_count++;
+    P.lastTs=ev.ts;if(!P.firstTs)P.firstTs=ev.ts;P.lastActiveTs=ev.ts;
+    P.daysActive.add(new Date(ev.ts).toISOString().slice(0,10));
+    if(ev.actionType==='deploy'||ev.actionType==='capture') if(ev.portal) P.deployedPortals[ev.portal]=(P.deployedPortals[ev.portal]||0)+1;
+    const kind=classifyEvent(ev.msg);
+    ev.kind=kind;ev.mu=ev.mu||0;
+    P.rawEvents.push({ts:ev.ts,portal:ev.portal||'',lat:ev.lat,lng:ev.lng,actionType:ev.actionType,kind,msg:ev.msg,mu:ev.mu||0});
+    P.eventKinds[kind]=(P.eventKinds[kind]||0)+1;
+    P.count++;
+    P.actions[ev.actionType]=(P.actions[ev.actionType]||0)+1;
+  });
+
+  const allPlayers=Object.values(playerMap);
+  allPlayers.forEach(P=>{
+    P.sessions_count=Math.max(1,P.sessions_count);
+    P.avgSessionMin=P.sessionMs>0?Math.round(P.sessionMs/60000/P.sessions_count):0;
+    P.topPortal=Object.entries(P.portalFreq).sort((a,b)=>b[1]-a[1])[0];
+    P.topZone=Object.entries(P.zones).sort((a,b)=>b[1]-a[1])[0];
+    // Build sessions
+    P.sessions=buildSessions(P.rawEvents);
+    computeSpeedSegments(P);
+    computePatterns(P,events);
+  });
+  computeCoordination(allPlayers,events);
+
+  const totalMsg=fileMetas.reduce((a,m)=>a+(m.total||0),0);
+  const dupCount=Math.max(0,totalMsg-events.length);
+  const minDate=fileMetas.reduce((a,m)=>m.rangeFrom<a?m.rangeFrom:a,fileMetas[0]?.rangeFrom||'');
+  const maxDate=fileMetas.reduce((a,m)=>m.rangeTo>a?m.rangeTo:a,fileMetas[0]?.rangeTo||'');
+
+  return{events,players:allPlayers.sort((a,b)=>b.count-a.count),meta:{totalMsg,dupCount,minDate,maxDate,fileCount:names.length}};
+}
+
+function initPlayer(name,faction){
+  return{name,faction,count:0,actions:{capture:0,deploy:0,link:0,field:0,destroy:0,destroyLink:0,destroyField:0,other:0},portalFreq:{},hourActivity:{},dowActivity:{},zones:{},deployedPortals:{},rawEvents:[],eventKinds:{presence:0,attack:0,unknown:0},speedSegments:[],speedAvgKmh:0,speedMaxKmh:0,speedMaxClass:'ok',speedTotalKm:0,totalMU:0,sessions_count:1,sessionMs:0,lastTs:null,firstTs:null,lastActiveTs:null,daysActive:new Set(),topPortal:null,topZone:null,avgSessionMin:0,sessions:[],patterns:{},archetypeData:archetypeMap.generalist,tacticalSummary:'',coordWith:[]};
+}
+
+function parseFile(txt,fname){
+  const lines=txt.split('\n');const meta={filename:fname,total:0,rangeFrom:'',rangeTo:''};const evs=[];
+  for(const l of lines){const tm=l.match(/Total mensajes:\s*(\d+)/);if(tm)meta.total=parseInt(tm[1]);const rm=l.match(/Rango:\s*([\d\- :]+)\s*-->\s*([\d\- :]+)/);if(rm){meta.rangeFrom=rm[1].trim();meta.rangeTo=rm[2].trim();}}
+  const evRe=/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[(ENL|RES|\?\?\?)\] (.+)$/;const porRe=/→ Portal: (.+?) \(([\d.]+),([\d.]+)\)/;let cur=null;
+  for(const l of lines){
+    const em=l.match(evRe);
+    if(em){const[,tsStr,fRaw,msg]=em;const faction=fRaw==='???'?'UNK':fRaw;const ts=new Date(tsStr+' UTC').getTime();const parsed=parseMsg(msg);cur={ts,faction,msg,...parsed};evs.push(cur);}
+    else if(cur&&l.includes('→ Portal:')){const pm=l.match(porRe);if(pm){if(!cur.portal)cur.portal=pm[1].trim();cur.lat=parseFloat(pm[2]);cur.lng=parseFloat(pm[3]);cur.zone=extractZone(pm[1]);}}
+  }
+  return{meta,evs};
+}
+
+function parseMsg(msg){
+  if(msg.startsWith('Your ')){const aM=msg.match(/^Your Portal (.+?) \(.*?\) is under attack by (.+)$/),nM=msg.match(/^Your Portal (.+?) \(.*?\) neutralized by (.+)$/),lM=msg.match(/^Your Link .+? to .+? destroyed by (.+)$/),fM=msg.match(/^Your Field .+? destroyed by (.+)$/);let at='kinetic',pt=null,att=null;if(aM){at='attack';pt=aM[1].trim();att=aM[2].trim();}else if(nM){at='neutralize';pt=nM[1].trim();att=nM[2].trim();}else if(lM){at='destroyLink';att=lM[1].trim();}else if(fM){at='destroyField';att=fM[1].trim();}return{agent:'Your',actionType:at,portal:pt,mu:0,isMyEvent:true,attacker:att,zone:null};}
+  const agM=msg.match(/^Agent (.+?) destroyed the Resistance (Link|Control Field) .+/);if(agM){const a=cleanA(agM[1]);if(AGENT_BLACKLIST.has(a.toLowerCase()))return NE();return{agent:a,actionType:agM[2]==='Link'?'destroyLink':'destroyField',portal:null,mu:0,isMyEvent:false,attacker:null,zone:null};}
+  const fM=msg.match(/^(?:Enlightened agent |Resistance agent )?(.+?) created a Control Field @(.+?) \(.*?\) \+(\d+) MUs/);if(fM)return V(cleanA(fM[1]),'field',fM[2].trim(),parseInt(fM[3])||0);
+  const cM=msg.match(/^(?:Enlightened agent |Resistance agent )?(.+?) captured (.+?) \(/);if(cM)return V(cleanA(cM[1]),'capture',cM[2].trim(),0);
+  const dM=msg.match(/^(?:Enlightened agent |Resistance agent )?(.+?) deployed a Resonator on (.+?) \(/);if(dM)return V(cleanA(dM[1]),'deploy',dM[2].trim(),0);
+  const lM=msg.match(/^(?:Enlightened agent |Resistance agent )?(.+?) linked (?:from )?(.+?) \(.*?\) to /);if(lM)return V(cleanA(lM[1]),'link',lM[2].trim(),0);
+  const rM=msg.match(/^(?:Enlightened agent |Resistance agent )?(.+?) destroyed a Resonator on (.+?) \(/);if(rM)return V(cleanA(rM[1]),'destroy',rM[2].trim(),0);
+  return NE();
+}
+function V(agent,actionType,portal,mu){if(!agent||AGENT_BLACKLIST.has(agent.toLowerCase()))return NE();return{agent,actionType,portal,mu,isMyEvent:false,attacker:null,zone:null};}
+function NE(){return{agent:null,actionType:'other',portal:null,mu:0,isMyEvent:false,attacker:null,zone:null};}
+function cleanA(s){return(s||'').replace(/^(Enlightened agent |Resistance agent )/,'').trim();}
+function extractZone(s){const m=s.match(/(\d{5})\s+([^,]+),/);if(m)return m[2].trim();const m2=s.match(/,\s*([^,]+),\s*Spain/i);if(m2)return m2[1].trim();return null;}
+function buildMyDefenseStats(events){return events.filter(e=>e.isMyEvent&&e.actionType==='neutralize'&&e.portal).map(atk=>{const recap=events.find(e=>!e.isMyEvent&&e.agent===MY_AGENT&&e.ts>atk.ts&&e.portal===atk.portal&&(e.actionType==='capture'||e.actionType==='deploy'));return recap?{portal:atk.portal,attacker:atk.attacker,lostTs:atk.ts,recapTs:recap.ts,diffMin:Math.round((recap.ts-atk.ts)/60000)}:null;}).filter(Boolean);}
+
+// ============================================================
+// MAP
+// ============================================================
+function initMap(){
+  if(!map){
+    map=L.map('map',{zoomControl:true,attributionControl:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OSM'}).addTo(map);
+    // init layer groups
+    Object.keys(layers).forEach(k=>{layers[k]=L.layerGroup().addTo(map);});
+  }
+  refreshMap();
+}
+
+function clearMapLayers(){if(!map)return;Object.values(layers).forEach(l=>{if(l)l.clearLayers();});}
+
+function refreshMap(){
+  if(!map||!GF) return;
+  Object.keys(layers).forEach(k=>{layers[k].clearLayers();});
+  if(layerVisible.portals) drawPortals();
+  if(layerVisible.mine) drawMyPortals();
+  if(activePlayer&&layerVisible.player) drawPlayerRoute(activePlayer);
+  if(activeSession&&layerVisible.session) drawSession(activeSession);
+  if(activeSession&&layerVisible.context) drawSessionContext(activeSession);
+  updateMapInfobar();
+}
+
+function drawPortals(){
+  GF.portals.forEach(portal=>{
+    if(!portal.lat||!portal.lng) return;
+    const enl=portal.factions.ENL||0,res=portal.factions.RES||0;
+    let color=enl>res?'#00e5a0':res>enl?'#00b4ff':'#ff9f00';
+    if(enl===0&&res===0) color='#4a6a7a';
+    const r=Math.max(5,Math.min(18,5+Math.sqrt(portal.count)*1.5));
+    const circle=L.circleMarker([portal.lat,portal.lng],{radius:r,fillColor:color,color:'rgba(0,0,0,.4)',weight:1,fillOpacity:.7});
+    circle.bindPopup(`<b>${esc(portal.name)}</b><br><span style="color:#00e5a0">ENL ${enl}</span> · <span style="color:#00b4ff">RES ${res}</span><br>Total: ${portal.count} acciones`);
+    circle.on('click',()=>{circle.openPopup();});
+    layers.portals.addLayer(circle);
+  });
+}
+
+function drawMyPortals(){
+  const myPortalEvents=GF.events.filter(e=>e.isMyEvent&&e.portal);
+  const myPortals={};
+  myPortalEvents.forEach(ev=>{
+    if(!myPortals[ev.portal])myPortals[ev.portal]={name:ev.portal,attacks:0,neutralized:0,lat:null,lng:null};
+    if(ev.actionType==='attack')myPortals[ev.portal].attacks++;
+    if(ev.actionType==='neutralize')myPortals[ev.portal].neutralized++;
+  });
+  // Get coords from portals layer data
+  GF.portals.forEach(p=>{if(myPortals[p.name]&&p.lat){myPortals[p.name].lat=p.lat;myPortals[p.name].lng=p.lng;}});
+  Object.values(myPortals).forEach(p=>{
+    if(!p.lat||!p.lng) return;
+    const attacked=p.attacks>0||p.neutralized>0;
+    const icon=L.divIcon({html:`<div style="width:14px;height:14px;border-radius:50%;background:${attacked?'#ff3355':'#00e5a0'};border:2px solid ${attacked?'#ff0000':'#00ffaa'};box-shadow:0 0 8px ${attacked?'#ff3355':'#00e5a0'}"></div>`,iconSize:[14,14],className:''});
+    const m=L.marker([p.lat,p.lng],{icon});
+    m.bindPopup(`<b>⭐ ${esc(p.name)}</b><br>Portal de HaidaMahalo<br>${attacked?`<span style="color:#ff3355">⚠ ${p.attacks} ataques · ${p.neutralized} neutralizados</span>`:'<span style="color:#00e5a0">Sin ataques</span>'}`);
+    layers.mine.addLayer(m);
+  });
+}
+
+function drawPlayerRoute(playerName){
+  const P=GF.players.find(p=>p.name===playerName);if(!P) return;
+  const col=P.faction==='ENL'?'#00e5a0':P.faction==='RES'?'#00b4ff':'#ff9f00';
+  // Draw all speed segments chronologically
+  const pEvs=P.rawEvents.filter(e=>e.kind==='presence'&&e.lat&&e.lng).sort((a,b)=>a.ts-b.ts);
+  for(let i=1;i<pEvs.length;i++){
+    const a=pEvs[i-1],b=pEvs[i];
+    const dt=(b.ts-a.ts)/1000;
+    if(dt<=0||dt>3600*4) continue;
+    const distKm=haversine(a.lat,a.lng,b.lat,b.lng)/1000;
+    if(distKm<0.01) continue;
+    const kmh=distKm/(dt/3600);
+    const lineCol=spdColor(spdClass(kmh));
+    L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:lineCol,weight:2,opacity:.7}).addTo(layers.player);
+  }
+  // Portal markers for this player
+  const seen=new Set();
+  pEvs.forEach(ev=>{
+    if(seen.has(ev.portal)) return;seen.add(ev.portal);
+    const icon=L.divIcon({html:`<div style="width:8px;height:8px;border-radius:50%;background:${col};border:1px solid rgba(0,0,0,.4)"></div>`,iconSize:[8,8],className:''});
+    L.marker([ev.lat,ev.lng],{icon}).bindPopup(`<b>${esc(ev.portal)}</b><br>${playerName}`).addTo(layers.player);
+  });
+}
+
+function drawSession(session){
+  layers.session.clearLayers();
+  const pts=session.portals.filter(p=>p.lat&&p.lng);
+  if(pts.length<2) return;
+  // Animated polyline
+  const coords=pts.map(p=>[p.lat,p.lng]);
+  const arch=session.dominantArch;
+  const col=arch==='fielder'?'#00e5a0':arch==='ninja'?'#ff3355':arch==='builder'?'#00b4ff':arch==='linker'?'#ff9f00':'#aabbd0';
+  L.polyline(coords,{color:col,weight:3,opacity:.9,dashArray:'6,4'}).addTo(layers.session);
+  pts.forEach((p,i)=>{
+    const icon=L.divIcon({html:`<div style="width:10px;height:10px;border-radius:50%;background:${col};border:2px solid rgba(255,255,255,.5);font-family:monospace;font-size:8px;color:#000;display:flex;align-items:center;justify-content:center">${i+1}</div>`,iconSize:[10,10],className:''});
+    L.marker([p.lat,p.lng],{icon}).bindPopup(`<b>${i+1}. ${esc(p.name)}</b><br>${fmtDateShort(session.events.find(e=>e.portal===p.name)?.ts||session.startTs)}`).addTo(layers.session);
+  });
+  // Fit to session
+  map.fitBounds(L.latLngBounds(coords),{padding:[40,40],maxZoom:14});
+}
+
+function drawSessionContext(session){
+  layers.context.clearLayers();
+  if(!session.centerLat) return;
+  const RANGE=15000; // 15km
+  const TWINDOW=30*60*1000; // ±30min
+  GF.players.forEach(P=>{
+    if(P.name===activePlayer) return;
+    const inRange=P.rawEvents.filter(e=>{
+      if(!e.lat||!e.lng) return false;
+      if(Math.abs(e.ts-session.startTs)>TWINDOW&&Math.abs(e.ts-session.endTs)>TWINDOW) return false;
+      return haversine(e.lat,e.lng,session.centerLat,session.centerLng)<RANGE;
+    });
+    if(!inRange.length) return;
+    const col=P.faction==='ENL'?'#00e5a080':P.faction==='RES'?'#00b4ff80':'#ff9f0080';
+    inRange.forEach(ev=>{
+      const icon=L.divIcon({html:`<div style="width:6px;height:6px;border-radius:50%;background:${col}"></div>`,iconSize:[6,6],className:''});
+      L.marker([ev.lat,ev.lng],{icon}).bindPopup(`<b>${esc(P.name)}</b> (contexto)<br>${esc(ev.portal||'')}<br>${fmtDateShort(ev.ts)}`).addTo(layers.context);
+    });
+  });
+}
+
+function toggleLayer(name){
+  layerVisible[name]=!layerVisible[name];
+  if(map&&GF) refreshMap();
+}
+
+function fitAll(){
+  if(!map||!GF) return;
+  const pts=GF.portals.filter(p=>p.lat&&p.lng).map(p=>[p.lat,p.lng]);
+  if(pts.length) map.fitBounds(L.latLngBounds(pts),{padding:[40,40]});
+}
+
+function fitPlayer(){
+  if(!map||!activePlayer) return;
+  const P=GF?.players.find(p=>p.name===activePlayer);
+  if(!P) return;
+  const pts=P.rawEvents.filter(e=>e.lat&&e.lng).map(e=>[e.lat,e.lng]);
+  if(pts.length) map.fitBounds(L.latLngBounds(pts),{padding:[40,40]});
+}
+
+function updateMapInfobar(){
+  const infobar=document.getElementById('mapInfobar');
+  const portalsWithCoords=(GF?.portals||[]).filter(p=>p.lat).length;
+  const playersWithCoords=(GF?.players||[]).filter(p=>p.rawEvents.some(e=>e.lat)).length;
+  let txt=`<strong>${portalsWithCoords}</strong> portales · <strong>${playersWithCoords}</strong> agentes con coordenadas`;
+  if(activePlayer) txt+=` · Agente: <strong>${esc(activePlayer)}</strong>`;
+  if(activeSession) txt+=` · Sesión: <strong>${fmtDateShort(activeSession.startTs)} · ${activeSession.durationMin}min</strong>`;
+  infobar.innerHTML=txt;
+}
+
+// ============================================================
+// RENDER PANEL
+// ============================================================
+function renderAll(){
+  if(!GF) return;
+  renderMeta();renderKPIs();renderTimeline();renderActions();renderMyAttacks();
+  renderPlayers(agentFilter);renderPortals();renderLog();
+  if(activePlayer) renderPlayerFicha(activePlayer);
+}
+
+function renderMeta(){
+  const m=GF.meta;
+  document.getElementById('metaStrip').innerHTML=
+    `<span>ARCHIVOS <strong>${m.fileCount}</strong></span>
+     <span>EVENTOS <strong>${GF.events.length.toLocaleString()}</strong></span>
+     <span>AGENTES <strong>${GF.players.length}</strong></span>
+     ${m.dupCount>0?`<span style="color:var(--unk)">DUPLIC. <strong>${m.dupCount}</strong></span>`:''}`;
+}
+
+function renderKPIs(){
+  const total=GF.events.filter(e=>!e.isMyEvent).length;
+  const enl=GF.facCounts.ENL||0,res=GF.facCounts.RES||0;
+  const myAtks=Object.values(GF.myAttacks).reduce((a,v)=>a+v.timestamps.length,0);
+  document.getElementById('kpiGrid').innerHTML=`
+    <div class="kpi enl"><div class="kpi-lbl">ENLIGHTENED</div><div class="kpi-val">${enl.toLocaleString()}</div><div class="kpi-sub">${pct(enl,total)}%</div></div>
+    <div class="kpi res"><div class="kpi-lbl">RESISTANCE</div><div class="kpi-val">${res.toLocaleString()}</div><div class="kpi-sub">${pct(res,total)}%</div></div>
+    <div class="kpi neu"><div class="kpi-lbl">CAMPOS</div><div class="kpi-val">${(GF.acCounts.field||0).toLocaleString()}</div><div class="kpi-sub">Control Fields</div></div>
+    <div class="kpi neu"><div class="kpi-lbl">MU TOTALES</div><div class="kpi-val">${GF.totalMU.toLocaleString()}</div><div class="kpi-sub">Mind Units</div></div>
+    <div class="kpi danger"><div class="kpi-lbl">ATAQUES A MÍ</div><div class="kpi-val">${myAtks}</div><div class="kpi-sub">portales atacados</div></div>
+    <div class="kpi neu"><div class="kpi-lbl">TOTAL EVENTOS</div><div class="kpi-val">${total.toLocaleString()}</div><div class="kpi-sub">${GF.players.length} agentes</div></div>`;
+}
+
+function renderTimeline(){
+  const keys=Object.keys(GF.hourBuckets).sort();if(!keys.length)return;
+  const maxV=Math.max(...Object.values(GF.hourBuckets));
+  document.getElementById('timelineChart').innerHTML=keys.map(k=>{const v=GF.hourBuckets[k],h=Math.max(3,Math.round((v/maxV)*60));return `<div class="t-bar" style="height:${h}px;background:linear-gradient(180deg,var(--enl),var(--enl-dim));opacity:${.35+.65*(v/maxV)}" data-tip="${k}: ${v}"></div>`;}).join('');
+  const step=Math.max(1,Math.floor(keys.length/6));
+  document.getElementById('timelineLabels').innerHTML=keys.map((k,i)=>i%step===0?`<span>${k.slice(5,13)}</span>`:'<span></span>').join('');
+}
+
+function renderActions(){
+  const ac=GF.acCounts;
+  document.getElementById('actCards').innerHTML=`
+    <div class="bar-list">
+      ${[['🏴 Capturas','capture','enl'],['🔋 Resonadores','deploy','res'],['🔗 Links','link','res'],['🔺 Fields','field','enl'],['💥 Destrucciones','destroy','unk'],['⚡ Links dest.','destroyLink','unk']].map(([lbl,k,cls])=>{const v=ac[k]||0,max=Math.max(...[ac.capture,ac.deploy,ac.link,ac.field,ac.destroy,ac.destroyLink].map(x=>x||0),1);return `<div class="bar-row"><div class="bar-lbl">${lbl}</div><div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct(v,max)}%"></div></div><div class="bar-val" style="color:var(--${cls})">${v.toLocaleString()}</div></div>`;}).join('')}
+    </div>`;
+}
+
+function renderMyAttacks(){
+  const attackers=Object.entries(GF.myAttacks).sort((a,b)=>b[1].timestamps.length-a[1].timestamps.length);
+  if(!attackers.length){document.getElementById('myAttackPanel').style.display='none';return;}
+  const totalAtks=attackers.reduce((a,[,v])=>a+v.timestamps.length,0);
+  const totalNeu=attackers.reduce((a,[,v])=>a+v.portalsNeutralized,0);
+  const defStats=GF.meDefenseStats||[];
+  const avgDef=defStats.length?Math.round(defStats.reduce((a,s)=>a+s.diffMin,0)/defStats.length):null;
+  document.getElementById('myAttackContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+      <div class="p-stat"><div class="p-stat-lbl">ATAQUES</div><div class="p-stat-val" style="color:var(--danger);font-size:18px">${totalAtks}</div></div>
+      <div class="p-stat"><div class="p-stat-lbl">PERDIDOS</div><div class="p-stat-val" style="color:var(--danger);font-size:18px">${totalNeu}</div></div>
+      ${avgDef!==null?`<div class="p-stat"><div class="p-stat-lbl">T.DEFENSA</div><div class="p-stat-val" style="color:var(--enl);font-size:18px">${avgDef}m</div></div>`:'<div></div>'}
+    </div>
+    ${attackers.slice(0,5).map(([name,v])=>`<div class="attacker-row"><div class="attacker-name">${esc(name)}</div><div class="bar-track"><div class="bar-fill danger" style="width:${pct(v.timestamps.length,totalAtks)}%"></div></div><div class="attacker-num">${v.timestamps.length}</div></div>`).join('')}`;
+}
+
+const sortStateP={};const sortStatePort={};
+function makeSortable(tableId,data,cols,rowFn,ss){
+  const tbl=document.getElementById(tableId);if(!tbl)return;
+  const renderT=()=>{
+    let sorted=[...data];
+    if(ss.col!=null){sorted.sort((a,b)=>{const av=cols[ss.col].val(a),bv=cols[ss.col].val(b);const cmp=typeof av==='number'?av-bv:String(av).localeCompare(String(bv));return ss.dir==='asc'?cmp:-cmp;});}
+    const thead=cols.map((c,i)=>{const cls=ss.col===i?(ss.dir==='asc'?'sort-asc':'sort-desc'):'';return `<th class="${cls}" data-col="${i}">${c.label}<span class="sa"></span></th>`;}).join('');
+    tbl.innerHTML=`<thead><tr>${thead}</tr></thead><tbody>${sorted.map((row,i)=>rowFn(row,i,sorted)).join('')}</tbody>`;
+    tbl.querySelectorAll('thead th').forEach(th=>{th.addEventListener('click',()=>{const col=parseInt(th.dataset.col);if(ss.col===col)ss.dir=ss.dir==='asc'?'desc':'asc';else{ss.col=col;ss.dir='desc';}renderT();});});
+  };
+  renderT();
+}
+
+function renderPlayers(filter){
+  let list=filter==='all'?GF.players:GF.players.filter(p=>p.faction===filter);
+  const maxC=list[0]?.count||1;
+  const fCls=f=>f==='ENL'?'enl':f==='RES'?'res':'unk';
+  const fCol=f=>f==='ENL'?'var(--enl)':f==='RES'?'var(--res)':'var(--unk)';
+  if(!sortStateP.col) sortStateP.col=null,sortStateP.dir='desc';
+  const cols=[
+    {label:'AGENTE',val:p=>p.name},
+    {label:'ROL',val:p=>p.archetypeData?.label||''},
+    {label:'FAC',val:p=>p.faction},
+    {label:'ACC',val:p=>p.count},
+    {label:'MU',val:p=>p.totalMU},
+    {label:'📍',val:p=>p.eventKinds.presence||0},
+    {label:'💥',val:p=>p.eventKinds.attack||0},
+    {label:'VEL',val:p=>p.speedMaxKmh},
+    {label:'SES',val:p=>p.sessions?.length||0},
+  ];
+  makeSortable('playerTable',list,cols,(p,i)=>{
+    const isMe=p.name===MY_AGENT;const fc=fCls(p.faction);const color=fCol(p.faction);const ad=p.archetypeData||{icon:'⚙️',cls:'arch-generalist'};
+    const isActive=p.name===activePlayer;
+    return `<tr class="${isActive?'selected':''}" onclick="selectPlayer('${esc(p.name)}')">
+      <td style="font-weight:600;font-size:11px">${esc(p.name)}${isMe?'<span class="me-star">★</span>':''}</td>
+      <td><span class="archetype ${ad.cls}">${ad.icon}</span></td>
+      <td><span class="fbadge ${isMe?'me':fc}">${isMe?'YO':fc.toUpperCase()}</span></td>
+      <td><span style="font-family:'Orbitron',monospace;font-size:11px;color:${color}">${p.count}</span><span class="mbar"><span class="mbar-f" style="width:${pct(p.count,maxC)}%;background:${color}"></span></span></td>
+      <td style="font-family:'Orbitron',monospace;font-size:10px;color:var(--enl)">${p.totalMU>0?p.totalMU.toLocaleString():'-'}</td>
+      <td style="color:var(--enl);font-size:11px">${p.eventKinds.presence||0}</td>
+      <td style="color:var(--danger);font-size:11px">${p.eventKinds.attack||0}</td>
+      <td><span class="spd ${p.speedMaxClass||'ok'}">${spdEmoji(p.speedMaxClass||'ok')} ${p.speedMaxKmh>0?p.speedMaxKmh.toFixed(0):'-'}</span></td>
+      <td style="font-family:'Orbitron',monospace;font-size:10px;color:var(--text-dim)">${p.sessions?.length||0}</td>
+    </tr>`;
+  },sortStateP);
+}
+
+function renderPortals(){
+  if(!sortStatePort.col) sortStatePort.col=null,sortStatePort.dir='desc';
+  const cols=[{label:'PORTAL',val:p=>p.name},{label:'ACC',val:p=>p.count},{label:'ENL',val:p=>p.factions.ENL||0},{label:'RES',val:p=>p.factions.RES||0}];
+  makeSortable('portalTable',GF.portals.slice(0,30),cols,(p,i)=>`
+    <tr onclick="flyToPortal('${esc(p.name)}')">
+      <td style="font-size:11px">${esc(p.name)}</td>
+      <td style="font-family:'Orbitron',monospace;font-size:10px;color:var(--enl)">${p.count}</td>
+      <td style="color:var(--enl);font-size:10px">${p.factions.ENL||0}</td>
+      <td style="color:var(--res);font-size:10px">${p.factions.RES||0}</td>
+    </tr>`,sortStatePort);
+}
+
+function renderLog(){
+  const recent=[...GF.events].slice(-100).reverse();
+  const fLbl=f=>f==='ENL'?`<span style="color:var(--enl)">ENL</span>`:f==='RES'?`<span style="color:var(--res)">RES</span>`:`<span style="color:var(--unk)">???</span>`;
+  document.getElementById('actLog').innerHTML=recent.map(ev=>{
+    const d=new Date(ev.ts);const t=`${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const isAtk=ev.isMyEvent&&(ev.actionType==='attack'||ev.actionType==='neutralize');
+    return `<div class="log-row" style="${isAtk?'background:rgba(255,51,85,.06);':''}"><div class="log-time">${t}</div><div class="log-fac">${ev.isMyEvent?'<span style="color:var(--danger)">⚠</span>':fLbl(ev.faction)}</div><div class="log-msg">${esc(ev.msg.slice(0,100))}${ev.msg.length>100?'…':''}</div></div>`;
+  }).join('');
+}
+
+// ============================================================
+// PLAYER FICHA
+// ============================================================
+function selectPlayer(name){
+  activePlayer=name;activeSession=null;
+  document.querySelectorAll('#playerTable tbody tr').forEach(tr=>{tr.classList.toggle('selected',tr.onclick.toString().includes(`'${name}'`));});
+  document.getElementById('btnFitPlayer').style.display='inline-block';
+  switchPTab(document.querySelectorAll('.ptab')[3],'tabPlayer');
+  renderPlayerFicha(name);
+  if(map&&GF){refreshMap();fitPlayer();}
+}
+
+function renderPlayerFicha(name){
+  const P=GF?.players.find(p=>p.name===name);
+  document.getElementById('playerFichaEmpty').style.display=P?'none':'block';
+  document.getElementById('playerFicha').style.display=P?'block':'none';
+  if(!P) return;
+  const ad=P.archetypeData||{icon:'⚙️',label:'Generalista',cls:'arch-generalist',desc:''};
+  const fCol=f=>f==='ENL'?'var(--enl)':f==='RES'?'var(--res)':'var(--unk)';
+  const color=fCol(P.faction);
+  const firstDate=P.firstTs?new Date(P.firstTs).toLocaleDateString('es-ES'):'-';
+  const lastDate=P.lastActiveTs?new Date(P.lastActiveTs).toLocaleDateString('es-ES'):'-';
+  const pats=P.patterns||{};
+  const patChips=Object.values(pats).filter(Boolean).map(pat=>pat.label?`<span class="chip" title="${esc(pat.desc||'')}">${esc(pat.label)}</span>`:'').join('');
+
+  // Sessions HTML
+  const sessHTML=P.sessions&&P.sessions.length?P.sessions.slice().reverse().map(sess=>{
+    const fc=P.faction==='ENL'?'enl':'res';
+    const isAct=activeSession&&activeSession.id===sess.id;
+    return `<div class="session-card ${fc}${isAct?' active':''}" onclick="selectSession('${esc(name)}','${esc(sess.id)}')">
+      <div class="sess-header">
+        <div class="sess-time">${fmtDateShort(sess.startTs)} → ${fmtDateShort(sess.endTs)}</div>
+        <div class="sess-dur">${sess.durationMin}min</div>
+      </div>
+      <div class="sess-stats">
+        <span><span class="sess-stat-val">${sess.portals.length}</span> portales</span>
+        <span><span class="sess-stat-val">${sess.events.length}</span> eventos</span>
+        ${sess.totalMU>0?`<span><span class="sess-stat-val">${sess.totalMU}</span> MU</span>`:''}
+        <span class="spd ${sess.spdCls}">${spdEmoji(sess.spdCls)}</span>
+        <span class="archetype ${archetypeMap[sess.dominantArch]?.cls||'arch-generalist'}" style="font-size:8px">${archetypeMap[sess.dominantArch]?.icon||'⚙️'}</span>
+      </div>
+      ${sess.zone?`<div class="sess-portals">📌 ${esc(sess.zone)}</div>`:''}
+    </div>`;
+  }).join(''):`<div style="color:var(--text-dim);font-size:11px">Sin sesiones detectadas.</div>`;
+
+  // Hour chart
+  const hours=Array.from({length:24},(_,h)=>P.hourActivity[h]||0);
+  const maxH=Math.max(...hours,1);
+  const hChart=hours.map((v,h)=>`<div class="h-bar" style="height:${Math.max(2,Math.round(v/maxH*50))}px;background:${color};opacity:${.3+.7*(v/maxH)}" data-tip="${h}h: ${v}"></div>`).join('');
+
+  // Top speed segs
+  const topSegs=P.speedSegments.slice(0,4);
+
+  // Coord panel
+  const coordHTML=P.coordWith&&P.coordWith.length?`
+    <div class="s-title">🤝 COORDINACIÓN</div>
+    ${P.coordWith.slice(0,5).map(c=>{const cp=GF.players.find(p=>p.name===c.partner);const pf=cp?.faction==='ENL'?'enl':cp?.faction==='RES'?'res':'unk';const pCol=cp?.faction==='ENL'?'var(--enl)':cp?.faction==='RES'?'var(--res)':'var(--unk)';return `<div class="coord-row"><span style="font-family:'Orbitron',monospace;font-size:10px;color:${pCol};width:110px;flex-shrink:0">${esc(c.partner)}</span><div class="coord-bar"><div class="coord-fill" style="width:${pct(c.count,P.coordWith[0].count)}%;background:${pCol}"></div></div><span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim)">${c.count} ev · ${c.portals}p</span></div>`;}).join('')}`:'';
+
+  document.getElementById('playerFicha').innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <span style="font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:${color}">${esc(name)}${name===MY_AGENT?'<span class="me-star">★</span>':''}</span>
+      <span class="archetype ${ad.cls}">${ad.icon} ${esc(ad.label)}</span>
+    </div>
+    ${P.tacticalSummary?`<div class="tact-summary">${esc(P.tacticalSummary)}</div>`:''}
+    <div class="chip-wrap">${patChips}</div>
+    <div class="p-stats">
+      <div class="p-stat"><div class="p-stat-lbl">ACCIONES</div><div class="p-stat-val" style="color:${color}">${P.count}</div></div>
+      <div class="p-stat"><div class="p-stat-lbl">MU</div><div class="p-stat-val" style="color:var(--enl)">${P.totalMU.toLocaleString()}</div></div>
+      <div class="p-stat"><div class="p-stat-lbl">DÍAS ACTIVO</div><div class="p-stat-val" style="color:${color}">${P.daysActive.size}</div></div>
+      <div class="p-stat"><div class="p-stat-lbl">SESIONES</div><div class="p-stat-val" style="color:${color}">${P.sessions?.length||0}</div></div>
+      <div class="p-stat"><div class="p-stat-lbl">VEL.MÁX</div><div class="p-stat-val"><span class="spd ${P.speedMaxClass||'ok'}" style="font-size:12px">${P.speedMaxKmh.toFixed(0)}</span></div></div>
+      <div class="p-stat"><div class="p-stat-lbl">PORTAL TOP</div><div class="p-stat-val" style="font-size:10px;color:${color}">${P.topPortal?esc(P.topPortal[0]).slice(0,14)+'…':'-'}</div></div>
+    </div>
+
+    ${coordHTML}
+
+    <div class="s-title" style="margin-top:10px">SESIONES DE JUEGO <span style="font-size:8px;font-weight:normal;letter-spacing:0">(click → ver en mapa)</span></div>
+    <div class="session-list" style="max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent">
+      ${sessHTML}
+    </div>
+
+    ${topSegs.length?`
+    <div class="s-title" style="margin-top:10px">🚀 TOP VELOCIDADES</div>
+    <div class="speed-panel">
+      ${topSegs.map(s=>`<div class="seg-row"><span class="spd ${s.cls}" style="flex-shrink:0">${spdEmoji(s.cls)}</span><div class="seg-main"><div class="seg-portals">${esc(s.fromPortal||'?')} → ${esc(s.toPortal||'?')}</div><div class="seg-meta">${s.distKm.toFixed(2)}km · ${fmtDur(s.dt)}</div></div><div class="seg-kmh" style="color:var(--spd-${s.cls})">${s.kmh.toFixed(0)}<span style="font-size:8px"> km/h</span></div></div>`).join('')}
+    </div>`:''}
+
+    <div class="s-title">ACTIVIDAD HORARIA</div>
+    <div class="hour-chart">${hChart}</div>
+    <div class="h-labels">${[0,4,8,12,16,20,23].map(h=>`<span>${pad(h)}h</span>`).join('')}</div>
+
+    ${GF.myAttacks[name]?`
+    <div class="s-title" style="margin-top:10px;color:var(--danger)">⚠ ATAQUES A MIS PORTALES</div>
+    <div class="attack-panel">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">
+        <div class="p-stat"><div class="p-stat-lbl">EVENTOS</div><div class="p-stat-val" style="color:var(--danger);font-size:16px">${GF.myAttacks[name].timestamps.length}</div></div>
+        <div class="p-stat"><div class="p-stat-lbl">NEUTR.</div><div class="p-stat-val" style="color:var(--danger);font-size:16px">${GF.myAttacks[name].portalsNeutralized}</div></div>
+        <div class="p-stat"><div class="p-stat-lbl">LINKS</div><div class="p-stat-val" style="color:var(--unk);font-size:16px">${GF.myAttacks[name].linksDestroyed}</div></div>
+      </div>
+      ${Object.entries(GF.myAttacks[name].portalsHit).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([p,n])=>`<div class="def-row"><div class="def-portal">${esc(p)}</div><div class="def-time">${n}x</div></div>`).join('')}
+    </div>`:''} `;
+}
+
+function selectSession(playerName,sessionId){
+  const P=GF?.players.find(p=>p.name===playerName);if(!P) return;
+  const sess=P.sessions.find(s=>s.id===sessionId);if(!sess) return;
+  activeSession=sess;
+  renderPlayerFicha(playerName); // refresh to show active state
+  if(map&&GF){
+    if(layerVisible.session) drawSession(sess);
+    if(layerVisible.context) drawSessionContext(sess);
+    updateMapInfobar();
+  }
+}
+
+function flyToPortal(name){
+  const p=GF?.portals.find(x=>x.name===name);
+  if(p&&p.lat&&map) map.setView([p.lat,p.lng],16);
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function switchPTab(btn,tabId){
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById(tabId).classList.add('on');
+}
+
+function setAgentFilter(filter,btn){
+  agentFilter=filter;
+  document.querySelectorAll('#tabAgents .btn-small').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(GF) renderPlayers(filter);
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function pct(v,t){return t?Math.round(v/t*100):0;}
+function pad(n){return String(n).padStart(2,'0');}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtDur(sec){sec=Number(sec)||0;if(sec<60)return Math.round(sec)+'s';if(sec<3600)return Math.round(sec/60)+'min';return Math.floor(sec/3600)+'h'+Math.round((sec%3600)/60)+'m';}
+function fmtDateShort(ts){if(!ts)return'—';try{return new Date(ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch{return'—';}}
+</script>
+</body>
+</html>
