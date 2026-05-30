@@ -1,0 +1,18 @@
+Subir estos archivos/rutas a la raiz del repo:
+
+index.html
+.gitignore
+.github/workflows/cook.yml
+cooker/cook.py
+cooker/sync_drive.py
+cooker/requirements.txt
+cooker/README.md
+cooker/ARCHITECTURE_V3.md
+
+No subir:
+
+cooker/raw/
+cooker/__pycache__/
+cooker/compiled/ si vas a dejar que GitHub Actions lo genere
+claves JSON de Google
+
