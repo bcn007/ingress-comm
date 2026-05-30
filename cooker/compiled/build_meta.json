@@ -1,0 +1,88 @@
+{
+  "builtAt": "2026-05-30T10:53:54.779321+00:00",
+  "rawDir": "/home/runner/work/Analiticgress/Analiticgress/cooker/raw",
+  "filesRead": 44,
+  "recordsRead": 455997,
+  "recordsUnique": 454882,
+  "duplicatesSkipped": 1115,
+  "agents": 506,
+  "portals": 37325,
+  "cookedEvents": 453466,
+  "cookedChunks": 10,
+  "cookedRawJsonBytes": 153413592,
+  "cookedCompressedBase64Bytes": 30021756,
+  "scalableDays": 44,
+  "scalableSummaries": {
+    "global": {
+      "path": "summaries/global.json.gz.b64.txt",
+      "rawJsonBytes": 386,
+      "compressedBase64Bytes": 368
+    },
+    "months": {
+      "path": "summaries/months.json.gz.b64.txt",
+      "rawJsonBytes": 510,
+      "compressedBase64Bytes": 372
+    },
+    "agents": {
+      "path": "summaries/agents.json.gz.b64.txt",
+      "rawJsonBytes": 657421,
+      "compressedBase64Bytes": 169888
+    },
+    "portals": {
+      "path": "summaries/portals.json.gz.b64.txt",
+      "rawJsonBytes": 7348855,
+      "compressedBase64Bytes": 2020436
+    },
+    "rankings": {
+      "path": "summaries/rankings.json.gz.b64.txt",
+      "rawJsonBytes": 12117,
+      "compressedBase64Bytes": 4024
+    },
+    "hallOfFame": {
+      "path": "summaries/hall_of_fame.json.gz.b64.txt",
+      "rawJsonBytes": 9140,
+      "compressedBase64Bytes": 2588
+    },
+    "agentIndex": {
+      "path": "indexes/agents.json.gz.b64.txt",
+      "rawJsonBytes": 1051389,
+      "compressedBase64Bytes": 270424
+    }
+  },
+  "schema": "bot-references-v1",
+  "timezone": "Europe/Madrid",
+  "dayKeyAlgo": "Europe/Madrid local date",
+  "sessionGapMs": 14400000,
+  "sidAlgo": "sha1-10",
+  "openSessionSidAlgo": "sha1-10-agent-start-end",
+  "speedFilter": {
+    "maxKmh": 200,
+    "minGapMs": 60000
+  },
+  "filters": {
+    "agentBlacklist": [
+      "__ada__",
+      "__jarvis__",
+      "a",
+      "ada",
+      "agent",
+      "an",
+      "enlightened",
+      "jarvis",
+      "machina",
+      "niasection14",
+      "resistance",
+      "the",
+      "unknown",
+      "your"
+    ],
+    "agentKey": "NFKD, remove marks, lowercase, ASCII alnum except __name__ sentinels",
+    "geo": {
+      "franceBoundingBoxExcluded": {
+        "latGt": 43.35,
+        "lngGt": -2.0,
+        "lngLt": 8.5
+      }
+    }
+  }
+}
